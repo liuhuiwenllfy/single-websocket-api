@@ -14,6 +14,10 @@ v1.0.0 | 2024-01-31
 
 ---
 
+## 架构图
+
+<img height="100%" src="https://resource.liulingfengyu.cn/img/集群化消息服务架构图.jpg" width="800"/>
+
 ## 使用说明
 
 ### 服务端通过API接口推送消息给客户端
