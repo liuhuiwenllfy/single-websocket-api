@@ -35,6 +35,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
      * 存储sessionId和webSocketSession
      * 需要注意的是，webSocketSession没有提供无参构造，不能进行序列化，也就不能通过redis存储
      * 在分布式系统中，要想别的办法实现webSocketSession共享（解决方案：采用redis发布订阅功能实现）
+     * 我们自定义消息模型，消息格式为{"userIdList":['用户id'],"message":"你要发送的消息"}
      */
     private static final Map<String, WebSocketSession> SESSION_MAP = new ConcurrentHashMap<>();
     private static final Map<String, String> USERID_MAP = new ConcurrentHashMap<>();
