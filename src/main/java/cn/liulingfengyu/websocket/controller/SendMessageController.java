@@ -23,7 +23,7 @@ public class SendMessageController {
      * @return {@link RespJson}
      */
     @PostMapping("sendMessage")
-    public RespJson<Boolean> sendSimpleTextMailActual(@RequestBody @Validated MessageDto messageDto) {
+    public RespJson<Boolean> sendMessage(@RequestBody @Validated MessageDto messageDto) {
         WebSocketHandler webSocketHandler = new WebSocketHandler();
         webSocketHandler.sendMessage(messageDto);
         return RespJson.success();

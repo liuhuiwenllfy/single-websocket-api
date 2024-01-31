@@ -17,6 +17,10 @@ public class MessageDto {
      */
     private List<String> userIdList;
     /**
+     * 消息类型
+     */
+    private String type;
+    /**
      * 其他信息
      */
     private String message;

@@ -19,7 +19,7 @@ import java.util.Map;
  */
 public class WebSocketInterceptor implements HandshakeInterceptor {
 
-    private static final String ID = "id";
+    private static final String USERNAME = "username";
 
     private static final String TOKEN = "token";
 
@@ -32,7 +32,7 @@ public class WebSocketInterceptor implements HandshakeInterceptor {
                 // TODO liuhuiwen 2024/1/31：验证token是否有效
                 throw new Exception("未登录");
             }
-            map.put(ID, servletServerHttpRequest.getServletRequest().getParameter(ID).concat(UUID.randomUUID().toString(true)));
+            map.put(USERNAME, servletServerHttpRequest.getServletRequest().getParameter(USERNAME).concat(UUID.randomUUID().toString(true)));
             return true;
         }
         return false;
