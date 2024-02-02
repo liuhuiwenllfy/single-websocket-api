@@ -1,7 +1,6 @@
 package cn.liulingfengyu.websocket.core.conf;
 
 import cn.hutool.core.lang.UUID;
-import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import cn.liulingfengyu.websocket.bo.MessageBo;
 import cn.liulingfengyu.websocket.bo.RedisMessageBo;
@@ -18,7 +17,6 @@ import org.springframework.web.socket.WebSocketMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -57,17 +55,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     @Override
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) {
         try {
-            JSONObject jsonObject = JSONUtil.parseObj(message.getPayload().toString());
-            MessageBo messageBo = JSONUtil.toBean(jsonObject, MessageBo.class);
-            List<String> userIdList = USERID_MAP.entrySet().stream()
-                    .filter(entry -> entry.getValue().equals(session.getId()))
-                    .map(Map.Entry::getKey)
-                    .collect(Collectors.toList());
-            messageBo.setUserIdList(userIdList);
-            Map<String, String> map = new HashMap<>();
-            map.put("type", messageBo.getType());
-            map.put("message", messageBo.getMessage());
-            messageBo.setMessage(JSONUtil.toJsonStr(map));
+            MessageBo messageBo = JSONUtil.toBean(message.getPayload().toString(), MessageBo.class);
             sendMessage(messageBo);
         } catch (Exception e) {
             log.error("未按照指定数据类型发送信息", e);
@@ -105,10 +93,6 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     public void sendMessage(MessageDto messageDto) {
         MessageBo messageBo = new MessageBo();
         BeanUtils.copyProperties(messageDto, messageBo);
-        Map<String, String> map = new HashMap<>();
-        map.put("type", messageBo.getType());
-        map.put("message", messageBo.getMessage());
-        messageBo.setMessage(JSONUtil.toJsonStr(map));
         sendMessage(messageBo);
     }
 
