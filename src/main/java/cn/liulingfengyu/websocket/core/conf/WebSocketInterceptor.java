@@ -40,6 +40,5 @@ public class WebSocketInterceptor implements HandshakeInterceptor {
 
     @Override
     public void afterHandshake(ServerHttpRequest serverHttpRequest, ServerHttpResponse serverHttpResponse, WebSocketHandler webSocketHandler, Exception e) {
-        // TODO liuhuiwen 2024/1/31：断开连接
     }
 }
