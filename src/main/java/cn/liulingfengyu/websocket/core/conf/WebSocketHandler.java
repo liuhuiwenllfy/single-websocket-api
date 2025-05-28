@@ -1,16 +1,15 @@
 package cn.liulingfengyu.websocket.core.conf;
 
 import cn.hutool.core.lang.UUID;
+import cn.hutool.extra.spring.SpringUtil;
 import cn.hutool.json.JSONUtil;
-import cn.liulingfengyu.websocket.bo.MessageBo;
-import cn.liulingfengyu.websocket.bo.RedisMessageBo;
 import cn.liulingfengyu.websocket.core.publish.ConstantConfiguration;
-import cn.liulingfengyu.websocket.dto.MessageDto;
-import cn.liulingfengyu.websocket.utils.GetBeanUtils;
+import cn.liulingfengyu.websocket.entity.Message;
+import cn.liulingfengyu.websocket.entity.RedisMessage;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketMessage;
@@ -27,6 +26,7 @@ import java.util.stream.Collectors;
  *
  * @author LLFY
  */
+@Component
 @Slf4j
 public class WebSocketHandler extends AbstractWebSocketHandler {
     /**
@@ -38,7 +38,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     private static final Map<String, WebSocketSession> SESSION_MAP = new ConcurrentHashMap<>();
     private static final Map<String, String> USERID_MAP = new ConcurrentHashMap<>();
     private static final String USER_ID = "userId";
-    private final StringRedisTemplate stringRedisTemplate = GetBeanUtils.getBean(StringRedisTemplate.class);
+    private final StringRedisTemplate stringRedisTemplate = SpringUtil.getBean(StringRedisTemplate.class);
 
     /**
      * webSocket连接创建后调用
@@ -55,8 +55,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     @Override
     public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) {
         try {
-            MessageBo messageBo = JSONUtil.toBean(message.getPayload().toString(), MessageBo.class);
-            sendMessage(messageBo);
+            sendMessage(JSONUtil.toBean(message.getPayload().toString(), Message.class));
         } catch (Exception e) {
             log.error("未按照指定数据类型发送信息", e);
         }
@@ -88,32 +87,23 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     /**
      * 其他模块调用该方法
      *
-     * @param messageDto 消息模型
+     * @param message 消息模型
      */
-    public void sendMessage(MessageDto messageDto) {
-        MessageBo messageBo = new MessageBo();
-        BeanUtils.copyProperties(messageDto, messageBo);
-        sendMessage(messageBo);
-    }
-
-    /**
-     * 后端发送消息
-     */
-    public void sendMessage(MessageBo messageBo) {
-        if (messageBo.isPublish()) {
+    public void sendMessage(Message message) {
+        if (message.isPublish()) {
             //发送消息需要通过redis发布出去
-            publish(messageBo);
-        } else if (messageBo.getUserIdList() == null || messageBo.getUserIdList().isEmpty()) {
+            publish(message);
+        } else if (message.getUserIdList() == null || message.getUserIdList().isEmpty()) {
             //未指定用户，发送给所有在线的客户
-            USERID_MAP.forEach((id, sessionId) -> send(sessionId, messageBo.getMessage()));
+            USERID_MAP.forEach((id, sessionId) -> send(sessionId, message.getMessage()));
         } else {
             //根据指定客户筛选出客户对应的sessionId集合
             List<String> sessionIdList = USERID_MAP.entrySet().stream()
-                    .filter(entry -> messageBo.getUserIdList().stream().anyMatch(id -> entry.getKey().split("-")[0].equals(id) || entry.getKey().equals(id)))
+                    .filter(entry -> message.getUserIdList().stream().anyMatch(id -> entry.getKey().split("-")[0].equals(id) || entry.getKey().equals(id)))
                     .map(Map.Entry::getValue)
                     .collect(Collectors.toList());
             //发布消息
-            sessionIdList.forEach(sessionId -> send(sessionId, messageBo.getMessage()));
+            sessionIdList.forEach(sessionId -> send(sessionId, message.getMessage()));
         }
     }
 
@@ -133,13 +123,13 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
     /**
      * redis发布
      *
-     * @param messageBo 消息
+     * @param message 消息
      */
-    private void publish(MessageBo messageBo) {
-        messageBo.setPublish(false);
-        RedisMessageBo redisMessageBo = new RedisMessageBo();
+    private void publish(Message message) {
+        message.setPublish(false);
+        RedisMessage redisMessageBo = new RedisMessage();
         redisMessageBo.setUuid(UUID.randomUUID().toString(true));
-        redisMessageBo.setMessage(JSONUtil.toJsonStr(messageBo));
+        redisMessageBo.setMessage(message);
         stringRedisTemplate.convertAndSend(ConstantConfiguration.WEBSOCKET, JSONUtil.toJsonStr(redisMessageBo));
     }
 }

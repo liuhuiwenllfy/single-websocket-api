@@ -1,8 +1,8 @@
 package cn.liulingfengyu.websocket.controller;
 
 import cn.liulingfengyu.websocket.core.conf.WebSocketHandler;
-import cn.liulingfengyu.websocket.dto.MessageDto;
-import cn.liulingfengyu.websocket.utils.RespJson;
+import cn.liulingfengyu.websocket.entity.Message;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -16,16 +16,18 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/websocket")
 public class SendMessageController {
 
+    @Autowired
+    private WebSocketHandler webSocketHandler;
+
     /**
      * 发送消息
      *
-     * @param messageDto 输入参数
-     * @return {@link RespJson}
+     * @param message 输入参数
+     * @return {@link Boolean}
      */
     @PostMapping("sendMessage")
-    public RespJson<Boolean> sendMessage(@RequestBody @Validated MessageDto messageDto) {
-        WebSocketHandler webSocketHandler = new WebSocketHandler();
-        webSocketHandler.sendMessage(messageDto);
-        return RespJson.success();
+    public Boolean sendMessage(@RequestBody @Validated Message message) {
+        webSocketHandler.sendMessage(message);
+        return true;
     }
 }

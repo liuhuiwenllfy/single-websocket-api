@@ -1,11 +1,11 @@
-package cn.liulingfengyu.websocket.bo;
+package cn.liulingfengyu.websocket.entity;
 
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class RedisMessageBo {
+public class RedisMessage {
 
     /**
      * 全局唯一id
@@ -15,5 +15,5 @@ public class RedisMessageBo {
     /**
      * 其他信息
      */
-    private String message;
+    private Message message;
 }

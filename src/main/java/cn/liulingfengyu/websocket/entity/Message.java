@@ -1,4 +1,4 @@
-package cn.liulingfengyu.websocket.bo;
+package cn.liulingfengyu.websocket.entity;
 
 import lombok.Data;
 
@@ -10,7 +10,7 @@ import java.util.List;
  * @author LLFY
  */
 @Data
-public class MessageBo {
+public class Message {
     /**
      * 是否广播
      */

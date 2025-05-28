@@ -1,15 +1,13 @@
 package cn.liulingfengyu.websocket.core.publish;
 
 import cn.hutool.json.JSONUtil;
-import cn.liulingfengyu.websocket.bo.RedisMessageBo;
-import cn.liulingfengyu.websocket.utils.RedisUtil;
-import lombok.Getter;
-import lombok.Setter;
+import cn.liulingfengyu.websocket.core.conf.WebSocketHandler;
+import cn.liulingfengyu.websocket.entity.RedisMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -22,29 +20,24 @@ import java.util.concurrent.TimeUnit;
  */
 @Slf4j
 @Component
-@Getter
-@Setter
-@Primary
-public abstract class MessageSubListener implements MessageListener {
-
-    private volatile String channel;
-
-    private volatile String msg;
+public class MessageSubListener implements MessageListener {
 
     @Autowired
-    private RedisUtil redisUtil;
+    private RedisTemplate<String, String> redisTemplate;
 
-    public abstract void onMessage();
+    @Autowired
+    private WebSocketHandler webSocketHandler;
 
     @Override
-    public synchronized void onMessage(Message message, byte[] bytes) {
-        channel = new String(bytes);
-        RedisMessageBo redisMessageBo = JSONUtil.toBean(message.toString(), RedisMessageBo.class);
-        String key = channel.concat(redisMessageBo.getUuid());
-        msg = redisMessageBo.getMessage();
-        if (!redisUtil.hasKey(key)) {
-            redisUtil.setEx(key, redisMessageBo.getMessage(), 3600, TimeUnit.MILLISECONDS);
-            onMessage();
+    public void onMessage(Message message, byte[] bytes) {
+        String channel = new String(bytes);
+        RedisMessage redisMessage = JSONUtil.toBean(message.toString(), RedisMessage.class);
+        String key = channel.concat(":").concat(redisMessage.getUuid());
+        if (Boolean.TRUE.equals(redisTemplate.opsForValue().setIfAbsent(key, JSONUtil.toJsonStr(redisMessage.getMessage()), 1, TimeUnit.DAYS))) {
+            log.info("redis订阅：主题->{}，消息->{}", channel, JSONUtil.toJsonStr(redisMessage.getMessage()));
+            webSocketHandler.sendMessage(redisMessage.getMessage());
+        } else {
+            log.warn("redis订阅：主题->{}，消息->{}，该消息已被消费", channel, JSONUtil.toJsonStr(redisMessage.getMessage()));
         }
     }
 }

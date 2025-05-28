@@ -1,13 +1,14 @@
 server:
-  port: 8009  #端口配置
+  port: 8010  #端口配置
 spring:
-  redis: #redis参数配置
-    host: 127.0.0.1
-    port: 6379
-    password:
-    database: 0
+  data:
+    redis:
+      port: 6379
+      database: 0
+      password: 123456
+      host: 127.0.0.1
 logging:
   level:
     cn.liulingfengyu.websocket: debug  #日志级别
   file:
-    path: /opt/app/log #日志输出路径
+    path: log #日志输出路径
