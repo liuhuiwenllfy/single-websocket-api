@@ -6,6 +6,7 @@ import cn.hutool.json.JSONUtil;
 import cn.liulingfengyu.websocket.core.publish.ConstantConfiguration;
 import cn.liulingfengyu.websocket.entity.Message;
 import cn.liulingfengyu.websocket.entity.RedisMessage;
+import lombok.NonNull;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -19,7 +20,6 @@ import org.springframework.web.socket.handler.AbstractWebSocketHandler;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 /**
  * WebSocket拦截器
@@ -53,7 +53,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
      * 接收到消息会调用
      */
     @Override
-    public void handleMessage(WebSocketSession session, WebSocketMessage<?> message) {
+    public void handleMessage(@NonNull WebSocketSession session, @NonNull WebSocketMessage<?> message) {
         try {
             sendMessage(JSONUtil.toBean(message.getPayload().toString(), Message.class));
         } catch (Exception e) {
@@ -65,7 +65,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
      * 连接出错会调用
      */
     @Override
-    public void handleTransportError(WebSocketSession session, Throwable exception) {
+    public void handleTransportError(WebSocketSession session, @NonNull Throwable exception) {
         SESSION_MAP.remove(session.getId());
         USERID_MAP.values().remove(session.getId());
     }
@@ -74,7 +74,7 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
      * 连接关闭会调用
      */
     @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+    public void afterConnectionClosed(WebSocketSession session, @NonNull CloseStatus status) {
         SESSION_MAP.remove(session.getId());
         USERID_MAP.values().remove(session.getId());
     }
@@ -89,23 +89,36 @@ public class WebSocketHandler extends AbstractWebSocketHandler {
      *
      * @param message 消息模型
      */
+    /**
+     * 发送消息给指定用户或广播
+     *
+     * @param message 消息模型
+     */
     public void sendMessage(Message message) {
-        if (message.isPublish()) {
-            //发送消息需要通过redis发布出去
-            publish(message);
-        } else if (message.getUserIdList() == null || message.getUserIdList().isEmpty()) {
-            //未指定用户，发送给所有在线的客户
-            USERID_MAP.forEach((id, sessionId) -> send(sessionId, message.getMessage()));
-        } else {
-            //根据指定客户筛选出客户对应的sessionId集合
-            List<String> sessionIdList = USERID_MAP.entrySet().stream()
-                    .filter(entry -> message.getUserIdList().stream().anyMatch(id -> entry.getKey().split("-")[0].equals(id) || entry.getKey().equals(id)))
-                    .map(Map.Entry::getValue)
-                    .collect(Collectors.toList());
-            //发布消息
-            sessionIdList.forEach(sessionId -> send(sessionId, message.getMessage()));
+        if (message == null) {
+            log.warn("消息不能为空");
+            return;
         }
+        if (message.isPublish()) {
+            publish(message);
+            return;
+        }
+        List<String> userIdList = message.getUserIdList();
+        String msgContent = message.getMessage();
+
+        if (userIdList == null || userIdList.isEmpty()) {
+            // 广播给所有在线用户
+            USERID_MAP.forEach((id, sessionId) -> send(sessionId, msgContent));
+            return;
+        }
+
+        // 根据目标用户筛选出对应的 sessionId 列表
+        List<String> sessionIdList = USERID_MAP.entrySet().stream().filter(entry -> userIdList.stream().anyMatch(id -> entry.getKey().split("-")[0].equals(id))).map(Map.Entry::getValue).toList();
+
+        // 向匹配的会话发送消息
+        sessionIdList.forEach(sessionId -> send(sessionId, msgContent));
     }
+
 
     /**
      * 指定用户发送消息
